@@ -5,6 +5,8 @@
 
 #include "Components/InputComponent.h"
 
+#include "Engine/World.h"
+
 // Sets default values
 AGoKart::AGoKart()
 {
@@ -35,8 +37,15 @@ void AGoKart::UpdateLocationFromVelocity(float DeltaTime)
 
 void AGoKart::ApplyRotation(float DeltaTime)
 {
-	float RotationAngle = MaxDegreesPerSecond * DeltaTime * SteeringThrow;
-	FQuat RotationDelta(GetActorUpVector(), FMath::DegreesToRadians(RotationAngle));
+	// Turning Circle: dx = dTheta * r
+	float SteeringAngle = (FVector::DotProduct(GetActorForwardVector(), Velocity) * DeltaTime) / MinTurningRadius;
+	UE_LOG(LogTemp, Display, TEXT("Steering Angle: %f"), SteeringAngle);
+
+	// Compute the rotation angle in radians
+	float RotationAngle = SteeringAngle * SteeringThrow;
+
+	UE_LOG(LogTemp, Display, TEXT("Rotation Angle: %f"), RotationAngle);
+	FQuat RotationDelta(GetActorUpVector(), RotationAngle);
 	AddActorWorldRotation(RotationDelta);
 
 	Velocity = RotationDelta.RotateVector(Velocity);
@@ -47,6 +56,14 @@ FVector AGoKart::GetAirResistance()
 	return - Velocity.GetSafeNormal() * Velocity.SizeSquared() * DragCoefficient;
 }
 
+FVector AGoKart::GetRollingResistance()
+{
+	float AccelerationDueToGravity = - GetWorld()->GetGravityZ()/100;
+	float NormalForce = Mass * AccelerationDueToGravity;
+
+	return - Velocity.GetSafeNormal() * NormalForce * RRCoefficient;
+}
+
 // Called every frame
 void AGoKart::Tick(float DeltaTime)
 {
@@ -54,6 +71,7 @@ void AGoKart::Tick(float DeltaTime)
 
 	FVector Force = GetActorForwardVector() * MaxDrivingForce * Throttle;
 	Force += GetAirResistance();
+	Force += GetRollingResistance();
 
 	FVector Acceleration = Force / Mass;
 

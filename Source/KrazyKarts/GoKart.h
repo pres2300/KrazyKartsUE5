@@ -35,16 +35,22 @@ private:
 	float MaxDrivingForce = 10000;
 
 	UPROPERTY(EditAnywhere)
-	float MaxDegreesPerSecond = 90;
+	float DragCoefficient = 16;
 
 	UPROPERTY(EditAnywhere)
-	float DragCoefficient = 16;
+	float MinTurningRadius = 10;	// meters
+
+	// Rolling resistance
+	UPROPERTY(EditAnywhere)
+	float RRCoefficient =  0.0150; // https://en.wikipedia.org/wiki/Rolling_resistance
 
 	void UpdateLocationFromVelocity(float DeltaTime);
 
 	void ApplyRotation(float DeltaTime);
 
 	FVector GetAirResistance();
+
+	FVector GetRollingResistance();
 
 	void MoveForward(float Value);
 
