@@ -77,6 +77,19 @@ private:
 	UPROPERTY(EditAnywhere)
 	float RRCoefficient =  0.0150; // https://en.wikipedia.org/wiki/Rolling_resistance
 
+	UPROPERTY(ReplicatedUsing=OnRep_ServerState)
+	FGoKartState ServerState;
+
+	FGoKartMove Move;
+
+	UPROPERTY(Replicated)
+	FVector Velocity;
+
+	TArray<FGoKartMove> UnacknowledgedMoves;
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void Server_SendMove(FGoKartMove NewMove);
+
 	void SimulateMove(FGoKartMove MoveToSimulate);
 
 	void UpdateLocationFromVelocity(float DeltaTime);
@@ -91,16 +104,7 @@ private:
 
 	void MoveRight(float Value);
 
-	UFUNCTION(Server, Reliable, WithValidation)
-	void Server_SendMove(FGoKartMove NewMove);
-
-	UPROPERTY(ReplicatedUsing=OnRep_ServerState)
-	FGoKartState ServerState;
-
-	FGoKartMove Move;
-
-	UPROPERTY(Replicated)
-	FVector Velocity;
+	void ClearAcknowledgedMoves(float LastMoveTime);
 
 	UFUNCTION()
 	void OnRep_ServerState();

@@ -6,6 +6,7 @@
 #include "Components/InputComponent.h"
 
 #include "Engine/World.h"
+#include "GameFramework/GameStateBase.h"
 #include "DrawDebugHelpers.h"
 #include "Net/UnrealNetwork.h"
 
@@ -114,10 +115,17 @@ void AGoKart::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	Move.DeltaTime = DeltaTime;
-	// TODO: set time
+	Move.Time = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
 
 	if (IsLocallyControlled())
 	{
+		if (!HasAuthority())
+		{
+			UnacknowledgedMoves.Add(Move);
+
+			UE_LOG(LogTemp, Warning, TEXT("Queue length: %d"), UnacknowledgedMoves.Num());
+		}
+
 		Server_SendMove(Move);
 
 		SimulateMove(Move);
@@ -126,10 +134,24 @@ void AGoKart::Tick(float DeltaTime)
 	DrawDebugString(GetWorld(), FVector(0,0,100), GetEnumText(GetLocalRole()), this, FColor::White, DeltaTime);
 }
 
+void AGoKart::ClearAcknowledgedMoves(float LastMoveTime)
+{
+	// Clear the acknowledged moves
+	for (int32 i=0; i<UnacknowledgedMoves.Num(); i++)
+	{
+		if (UnacknowledgedMoves[i].Time < LastMoveTime)
+		{
+			UnacknowledgedMoves.RemoveAt(i);
+		}
+	}
+}
+
 void AGoKart::OnRep_ServerState()
 {
 	SetActorTransform(ServerState.Transform);
 	Velocity = ServerState.Velocity;
+
+	ClearAcknowledgedMoves(ServerState.LastMove.Time);
 }
 
 // Called to bind functionality to input
