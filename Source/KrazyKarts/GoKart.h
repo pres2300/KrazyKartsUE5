@@ -77,9 +77,11 @@ private:
 	UPROPERTY(EditAnywhere)
 	float RRCoefficient =  0.0150; // https://en.wikipedia.org/wiki/Rolling_resistance
 
+	void SimulateMove(FGoKartMove MoveToSimulate);
+
 	void UpdateLocationFromVelocity(float DeltaTime);
 
-	void ApplyRotation(float DeltaTime);
+	void ApplyRotation(float DeltaTime, float SteeringThrow);
 
 	FVector GetAirResistance();
 
@@ -95,7 +97,6 @@ private:
 	UPROPERTY(ReplicatedUsing=OnRep_ServerState)
 	FGoKartState ServerState;
 
-	UPROPERTY(Replicated)
 	FGoKartMove Move;
 
 	UPROPERTY(Replicated)

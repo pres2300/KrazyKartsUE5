@@ -21,7 +21,6 @@ void AGoKart::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifet
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
     DOREPLIFETIME(AGoKart, ServerState);
-	DOREPLIFETIME(AGoKart, Move);
 }
 
 // Called when the game starts or when spawned
@@ -33,6 +32,23 @@ void AGoKart::BeginPlay()
 	{
 		NetUpdateFrequency = 1;
 	}
+}
+
+void AGoKart::SimulateMove(FGoKartMove MoveToSimulate)
+{
+	FVector Force = GetActorForwardVector() * MaxDrivingForce * MoveToSimulate.Throttle;
+	Force += GetAirResistance();
+	Force += GetRollingResistance();
+
+	FVector Acceleration = Force / Mass;
+
+	Velocity += Acceleration * MoveToSimulate.DeltaTime;
+
+	ApplyRotation(MoveToSimulate.DeltaTime, MoveToSimulate.SteeringThrow);
+
+	UpdateLocationFromVelocity(MoveToSimulate.DeltaTime);
+
+	Move = MoveToSimulate;
 }
 
 void AGoKart::UpdateLocationFromVelocity(float DeltaTime)
@@ -48,13 +64,13 @@ void AGoKart::UpdateLocationFromVelocity(float DeltaTime)
 	}
 }
 
-void AGoKart::ApplyRotation(float DeltaTime)
+void AGoKart::ApplyRotation(float DeltaTime, float SteeringThrow)
 {
 	// Turning Circle: dx = dTheta * r
 	float SteeringAngle = (FVector::DotProduct(GetActorForwardVector(), Velocity) * DeltaTime) / MinTurningRadius;
 
 	// Compute the rotation angle in radians
-	float RotationAngle = SteeringAngle * Move.SteeringThrow;
+	float RotationAngle = SteeringAngle * SteeringThrow;
 
 	FQuat RotationDelta(GetActorUpVector(), RotationAngle);
 	AddActorWorldRotation(RotationDelta);
@@ -100,27 +116,11 @@ void AGoKart::Tick(float DeltaTime)
 	Move.DeltaTime = DeltaTime;
 	// TODO: set time
 
-	FVector Force = GetActorForwardVector() * MaxDrivingForce * Move.Throttle;
-	Force += GetAirResistance();
-	Force += GetRollingResistance();
-
-	FVector Acceleration = Force / Mass;
-
-	Velocity += Acceleration * DeltaTime;
-
-	ApplyRotation(DeltaTime);
-
-	UpdateLocationFromVelocity(DeltaTime);
-
-	if (HasAuthority())
-	{
-		ServerState.Transform = GetActorTransform();
-		ServerState.Velocity = Velocity;
-		// TODO: update last move
-	}
-	else if (IsLocallyControlled())
+	if (IsLocallyControlled())
 	{
 		Server_SendMove(Move);
+
+		SimulateMove(Move);
 	}
 
 	DrawDebugString(GetWorld(), FVector(0,0,100), GetEnumText(GetLocalRole()), this, FColor::White, DeltaTime);
@@ -155,7 +155,11 @@ void AGoKart::MoveRight(float Value)
 
 void AGoKart::Server_SendMove_Implementation(FGoKartMove NewMove)
 {
-	Move = NewMove;
+	SimulateMove(NewMove);
+
+	ServerState.LastMove = NewMove;
+	ServerState.Transform = GetActorTransform();
+	ServerState.Velocity = Velocity;
 }
 
 bool AGoKart::Server_SendMove_Validate(FGoKartMove NewMove)
