@@ -117,18 +117,23 @@ void AGoKart::Tick(float DeltaTime)
 	Move.DeltaTime = DeltaTime;
 	Move.Time = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
 
-	if (IsLocallyControlled())
+	if (GetLocalRole() == ROLE_AutonomousProxy)
 	{
-		if (!HasAuthority())
-		{
-			UnacknowledgedMoves.Add(Move);
-
-			UE_LOG(LogTemp, Warning, TEXT("Queue length: %d"), UnacknowledgedMoves.Num());
-		}
+		UnacknowledgedMoves.Add(Move);
+		SimulateMove(Move);
 
 		Server_SendMove(Move);
+	}
 
-		SimulateMove(Move);
+	// We are the server and in control of the pawn
+	if (GetLocalRole() == ROLE_Authority && IsLocallyControlled())
+	{
+		Server_SendMove(Move);
+	}
+
+	if (GetLocalRole() == ROLE_SimulatedProxy)
+	{
+		SimulateMove(ServerState.LastMove);
 	}
 
 	DrawDebugString(GetWorld(), FVector(0,0,100), GetEnumText(GetLocalRole()), this, FColor::White, DeltaTime);
