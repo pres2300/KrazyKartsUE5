@@ -35,7 +35,7 @@ void AGoKart::BeginPlay()
 	}
 }
 
-void AGoKart::SimulateMove(FGoKartMove MoveToSimulate)
+void AGoKart::SimulateMove(const FGoKartMove& MoveToSimulate)
 {
 	FVector Force = GetActorForwardVector() * MaxDrivingForce * MoveToSimulate.Throttle;
 	Force += GetAirResistance();
@@ -136,14 +136,17 @@ void AGoKart::Tick(float DeltaTime)
 
 void AGoKart::ClearAcknowledgedMoves(float LastMoveTime)
 {
-	// Clear the acknowledged moves
-	for (int32 i=0; i<UnacknowledgedMoves.Num(); i++)
+	TArray<FGoKartMove> NewMoves;
+
+	for (const FGoKartMove& MoveItr : UnacknowledgedMoves)
 	{
-		if (UnacknowledgedMoves[i].Time < LastMoveTime)
+		if (MoveItr.Time > LastMoveTime)
 		{
-			UnacknowledgedMoves.RemoveAt(i);
+			NewMoves.Add(MoveItr);
 		}
 	}
+
+	UnacknowledgedMoves = NewMoves;
 }
 
 void AGoKart::OnRep_ServerState()
@@ -152,6 +155,11 @@ void AGoKart::OnRep_ServerState()
 	Velocity = ServerState.Velocity;
 
 	ClearAcknowledgedMoves(ServerState.LastMove.Time);
+
+	for (int32 i=0; i<UnacknowledgedMoves.Num(); i++)
+	{
+		SimulateMove(UnacknowledgedMoves[i]);
+	}
 }
 
 // Called to bind functionality to input

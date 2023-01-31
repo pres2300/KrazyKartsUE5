@@ -90,7 +90,7 @@ private:
 	UFUNCTION(Server, Reliable, WithValidation)
 	void Server_SendMove(FGoKartMove NewMove);
 
-	void SimulateMove(FGoKartMove MoveToSimulate);
+	void SimulateMove(const FGoKartMove& MoveToSimulate);
 
 	void UpdateLocationFromVelocity(float DeltaTime);
 
