@@ -4,6 +4,7 @@
 #include "GoKartMovementReplicator.h"
 
 #include "Net/UnrealNetwork.h"
+#include "GameFramework/GameStateBase.h"
 
 // Sets default values for this component's properties
 UGoKartMovementReplicator::UGoKartMovementReplicator()
@@ -30,7 +31,34 @@ void UGoKartMovementReplicator::TickComponent(float DeltaTime, ELevelTick TickTy
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	// ...
+	if (MovementComponent == nullptr)
+	{
+		return;
+	}
+
+	FGoKartMove Move = MovementComponent->GetMove();
+
+	Move.DeltaTime = DeltaTime;
+	Move.Time = GetOwner()->GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
+
+	if (GetOwnerRole() == ROLE_AutonomousProxy)
+	{
+		AddUnacknowledgedMove(Move);
+		MovementComponent->SimulateMove(Move);
+
+		Server_SendMove(Move);
+	}
+
+	// We are the server and in control of the pawn
+	if (GetOwnerRole() == ROLE_Authority && GetOwner()->GetRemoteRole() == ROLE_SimulatedProxy)
+	{
+		Server_SendMove(Move);
+	}
+
+	if (GetOwnerRole() == ROLE_SimulatedProxy)
+	{
+		MovementComponent->SimulateMove(GetLastMove());
+	}
 }
 
 void UGoKartMovementReplicator::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const

@@ -6,7 +6,6 @@
 #include "Components/InputComponent.h"
 
 #include "Engine/World.h"
-#include "GameFramework/GameStateBase.h"
 #include "DrawDebugHelpers.h"
 
 // Sets default values
@@ -52,35 +51,6 @@ FString GetEnumText(ENetRole Role)
 void AGoKart::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	if (MovementComponent == nullptr || MovementReplicator == nullptr)
-	{
-		return;
-	}
-
-	FGoKartMove Move = MovementComponent->GetMove();
-
-	Move.DeltaTime = DeltaTime;
-	Move.Time = GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
-
-	if (GetLocalRole() == ROLE_AutonomousProxy)
-	{
-		MovementReplicator->AddUnacknowledgedMove(Move);
-		MovementComponent->SimulateMove(Move);
-
-		MovementReplicator->Server_SendMove(Move);
-	}
-
-	// We are the server and in control of the pawn
-	if (GetLocalRole() == ROLE_Authority && IsLocallyControlled())
-	{
-		MovementReplicator->Server_SendMove(Move);
-	}
-
-	if (GetLocalRole() == ROLE_SimulatedProxy)
-	{
-		MovementComponent->SimulateMove(MovementReplicator->GetLastMove());
-	}
 
 	DrawDebugString(GetWorld(), FVector(0,0,100), GetEnumText(GetLocalRole()), this, FColor::White, DeltaTime);
 }
