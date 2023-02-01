@@ -3,25 +3,11 @@
 #pragma once
 
 #include "GoKartMovementComponent.h"
+#include "GoKartMovementReplicator.h"
 
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 #include "GoKart.generated.h"
-
-USTRUCT()
-struct FGoKartState
-{
-    GENERATED_USTRUCT_BODY()
-
-	UPROPERTY()
-	FGoKartMove LastMove;
-
-	UPROPERTY()
-	FVector Velocity;
-
-	UPROPERTY()
-	FTransform Transform;
-};
 
 UCLASS()
 class KRAZYKARTS_API AGoKart : public APawn
@@ -48,20 +34,12 @@ private:
 	UPROPERTY(VisibleAnywhere)
 	UGoKartMovementComponent* MovementComponent;
 
-	UPROPERTY(ReplicatedUsing=OnRep_ServerState)
-	FGoKartState ServerState;
-
-	TArray<FGoKartMove> UnacknowledgedMoves;
-
-	UFUNCTION(Server, Reliable, WithValidation)
-	void Server_SendMove(FGoKartMove NewMove);
+	UPROPERTY(VisibleAnywhere)
+	UGoKartMovementReplicator* MovementReplicator;
 
 	void MoveForward(float Value);
 
 	void MoveRight(float Value);
 
-	void ClearAcknowledgedMoves(float LastMoveTime);
 
-	UFUNCTION()
-	void OnRep_ServerState();
 };
