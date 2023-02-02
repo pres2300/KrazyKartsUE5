@@ -3,6 +3,8 @@
 
 #include "GoKartMovementComponent.h"
 
+#include "GameFramework/GameStateBase.h"
+
 // Sets default values for this component's properties
 UGoKartMovementComponent::UGoKartMovementComponent()
 {
@@ -20,22 +22,39 @@ void UGoKartMovementComponent::BeginPlay()
 
 }
 
+bool UGoKartMovementComponent::IsLocallyControlled()
+{
+	auto* Owner = Cast<APawn>(GetOwner());
+	if (!Owner)
+	{
+		return false;
+	}
+
+	return Owner->IsLocallyControlled();
+}
+
 // Called every frame
 void UGoKartMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	// ...
+	if (GetOwnerRole() == ROLE_AutonomousProxy || IsLocallyControlled())
+	{
+		FGoKartMove NewMove;
+		NewMove.DeltaTime = DeltaTime;
+		NewMove.Time = GetOwner()->GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
+		NewMove.SteeringThrow = SteeringThrow;
+		NewMove.Throttle = Throttle;
+
+		LastMove = NewMove;
+
+		SimulateMove(NewMove);
+	}
 }
 
 FGoKartMove UGoKartMovementComponent::GetMove()
 {
-	return Move;
-}
-
-void UGoKartMovementComponent::SetMove(FGoKartMove MoveToSet)
-{
-	Move = MoveToSet;
+	return LastMove;
 }
 
 FVector UGoKartMovementComponent::GetVelocity()
@@ -50,12 +69,12 @@ void UGoKartMovementComponent::SetVelocity(FVector VelocityToSet)
 
 void UGoKartMovementComponent::SetThrottle(float ThrottleToSet)
 {
-	Move.Throttle = ThrottleToSet;
+	Throttle = ThrottleToSet;
 }
 
 void UGoKartMovementComponent::SetSteeringThrow(float SteeringThrowToSet)
 {
-	Move.SteeringThrow = SteeringThrowToSet;
+	SteeringThrow = SteeringThrowToSet;
 }
 
 void UGoKartMovementComponent::SimulateMove(const FGoKartMove& MoveToSimulate)
@@ -71,8 +90,6 @@ void UGoKartMovementComponent::SimulateMove(const FGoKartMove& MoveToSimulate)
 	ApplyRotation(MoveToSimulate.DeltaTime, MoveToSimulate.SteeringThrow);
 
 	UpdateLocationFromVelocity(MoveToSimulate.DeltaTime);
-
-	Move = MoveToSimulate;
 }
 
 void UGoKartMovementComponent::UpdateLocationFromVelocity(float DeltaTime)
@@ -88,13 +105,13 @@ void UGoKartMovementComponent::UpdateLocationFromVelocity(float DeltaTime)
 	}
 }
 
-void UGoKartMovementComponent::ApplyRotation(float DeltaTime, float SteeringThrow)
+void UGoKartMovementComponent::ApplyRotation(float DeltaTime, float SteeringThrowToSet)
 {
 	// Turning Circle: dx = dTheta * r
 	float SteeringAngle = (FVector::DotProduct(GetOwner()->GetActorForwardVector(), Velocity) * DeltaTime) / MinTurningRadius;
 
 	// Compute the rotation angle in radians
-	float RotationAngle = SteeringAngle * SteeringThrow;
+	float RotationAngle = SteeringAngle * SteeringThrowToSet;
 
 	FQuat RotationDelta(GetOwner()->GetActorUpVector(), RotationAngle);
 	GetOwner()->AddActorWorldRotation(RotationDelta);

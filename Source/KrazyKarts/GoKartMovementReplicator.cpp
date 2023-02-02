@@ -38,43 +38,46 @@ void UGoKartMovementReplicator::TickComponent(float DeltaTime, ELevelTick TickTy
 
 	FGoKartMove Move = MovementComponent->GetMove();
 
-	Move.DeltaTime = DeltaTime;
-	Move.Time = GetOwner()->GetWorld()->GetGameState()->GetServerWorldTimeSeconds();
-
 	if (GetOwnerRole() == ROLE_AutonomousProxy)
 	{
-		AddUnacknowledgedMove(Move);
-		MovementComponent->SimulateMove(Move);
-
+		UnacknowledgedMoves.Add(Move);
 		Server_SendMove(Move);
 	}
 
 	// We are the server and in control of the pawn
-	if (GetOwnerRole() == ROLE_Authority && GetOwner()->GetRemoteRole() == ROLE_SimulatedProxy)
+	if (GetOwnerRole() == ROLE_Authority && IsLocallyControlled())
 	{
-		Server_SendMove(Move);
+		UpdateServerState(Move);
 	}
 
 	if (GetOwnerRole() == ROLE_SimulatedProxy)
 	{
-		MovementComponent->SimulateMove(GetLastMove());
+		MovementComponent->SimulateMove(ServerState.LastMove);
 	}
+}
+
+bool UGoKartMovementReplicator::IsLocallyControlled()
+{
+	auto* Owner = Cast<APawn>(GetOwner());
+	if (!Owner)
+	{
+		return false;
+	}
+
+	return Owner->IsLocallyControlled();
+}
+
+void UGoKartMovementReplicator::UpdateServerState(const FGoKartMove& Move)
+{
+	ServerState.LastMove = Move;
+	ServerState.Transform = GetOwner()->GetActorTransform();
+	ServerState.Velocity = MovementComponent->GetVelocity();
 }
 
 void UGoKartMovementReplicator::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
     DOREPLIFETIME(UGoKartMovementReplicator, ServerState);
-}
-
-void UGoKartMovementReplicator::AddUnacknowledgedMove(FGoKartMove NewMove)
-{
-	UnacknowledgedMoves.Add(NewMove);
-}
-
-FGoKartMove UGoKartMovementReplicator::GetLastMove()
-{
-	return ServerState.LastMove;
 }
 
 void UGoKartMovementReplicator::ClearAcknowledgedMoves(float LastMoveTime)
@@ -118,10 +121,7 @@ void UGoKartMovementReplicator::Server_SendMove_Implementation(FGoKartMove NewMo
 	}
 
 	MovementComponent->SimulateMove(NewMove);
-
-	ServerState.LastMove = NewMove;
-	ServerState.Transform = GetOwner()->GetActorTransform();
-	ServerState.Velocity = MovementComponent->GetVelocity();
+	UpdateServerState(NewMove);
 }
 
 bool UGoKartMovementReplicator::Server_SendMove_Validate(FGoKartMove NewMove)

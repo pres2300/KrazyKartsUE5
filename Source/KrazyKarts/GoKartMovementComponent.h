@@ -43,8 +43,6 @@ public:
 
 	FGoKartMove GetMove();
 
-	void SetMove(FGoKartMove MoveToSet);
-
 	void SetThrottle(float ThrottleToSet);
 
 	void SetSteeringThrow(float SteeringThrowToSet);
@@ -75,11 +73,16 @@ private:
 	UPROPERTY(EditAnywhere)
 	float RRCoefficient =  0.0150; // https://en.wikipedia.org/wiki/Rolling_resistance
 
-	FGoKartMove Move;
+	FGoKartMove LastMove;
+
+	float Throttle;
+	float SteeringThrow;
+
+	bool IsLocallyControlled();
 
 	void UpdateLocationFromVelocity(float DeltaTime);
 
-	void ApplyRotation(float DeltaTime, float SteeringThrow);
+	void ApplyRotation(float DeltaTime, float SteeringThrowToSet);
 
 	FVector GetAirResistance();
 

@@ -43,22 +43,21 @@ public:
 	UFUNCTION(Server, Reliable, WithValidation)
 	void Server_SendMove(FGoKartMove NewMove);
 
-	void AddUnacknowledgedMove(FGoKartMove NewMove);
-
-	FGoKartMove GetLastMove();
-
 private:
+	bool IsLocallyControlled();
 
 	TArray<FGoKartMove> UnacknowledgedMoves;
 
 	UPROPERTY(ReplicatedUsing=OnRep_ServerState)
 	FGoKartState ServerState;
 
+	UPROPERTY()
+	UGoKartMovementComponent* MovementComponent;
+
 	UFUNCTION()
 	void OnRep_ServerState();
 
 	void ClearAcknowledgedMoves(float LastMoveTime);
 
-	UPROPERTY()
-	UGoKartMovementComponent* MovementComponent;
+	void UpdateServerState(const FGoKartMove& Move);
 };
