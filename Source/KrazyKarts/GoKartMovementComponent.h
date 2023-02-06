@@ -53,6 +53,8 @@ public:
 
 	void SimulateMove(const FGoKartMove& MoveToSimulate);
 
+	bool IsLocallyControlled();
+
 private:
 	FVector Velocity;
 
@@ -77,8 +79,6 @@ private:
 
 	float Throttle;
 	float SteeringThrow;
-
-	bool IsLocallyControlled();
 
 	void UpdateLocationFromVelocity(float DeltaTime);
 

@@ -45,7 +45,7 @@ void UGoKartMovementReplicator::TickComponent(float DeltaTime, ELevelTick TickTy
 	}
 
 	// We are the server and in control of the pawn
-	if (GetOwnerRole() == ROLE_Authority && GetOwner()->IsLocallyControlled())
+	if (GetOwnerRole() == ROLE_Authority && MovementComponent->IsLocallyControlled())
 	{
 		UpdateServerState(Move);
 	}
