@@ -24,7 +24,7 @@ void UGoKartMovementComponent::BeginPlay()
 
 bool UGoKartMovementComponent::IsLocallyControlled()
 {
-	auto* Owner = Cast<APawn>(GetOwner());
+	auto Owner = Cast<APawn>(GetOwner());
 	if (!Owner)
 	{
 		return false;
