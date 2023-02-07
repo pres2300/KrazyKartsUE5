@@ -44,8 +44,6 @@ public:
 	void Server_SendMove(FGoKartMove NewMove);
 
 private:
-	bool IsLocallyControlled();
-
 	TArray<FGoKartMove> UnacknowledgedMoves;
 
 	UPROPERTY(ReplicatedUsing=OnRep_ServerState)
@@ -54,10 +52,24 @@ private:
 	UPROPERTY()
 	UGoKartMovementComponent* MovementComponent;
 
+	float ClientTimeSinceUpdate;
+
+	float ClientTimeBetweenLastUpdates;
+
+	FTransform ClientStartTransform;
+
 	UFUNCTION()
 	void OnRep_ServerState();
+
+	void SimulatedProxy_OnRep_ServerState();
+
+	void AutonomousProxy_OnRep_ServerState();
 
 	void ClearAcknowledgedMoves(float LastMoveTime);
 
 	void UpdateServerState(const FGoKartMove& Move);
+
+	bool IsLocallyControlled();
+
+	void ClientTick(float DeltaTime);
 };
