@@ -58,6 +58,8 @@ private:
 
 	FTransform ClientStartTransform;
 
+	FVector ClientStartVelocity;
+
 	UFUNCTION()
 	void OnRep_ServerState();
 
