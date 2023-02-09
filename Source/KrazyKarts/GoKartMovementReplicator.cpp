@@ -81,7 +81,10 @@ void UGoKartMovementReplicator::InterpolateLocation(const FHermiteCubicSpline &S
 {
 	FVector NextLocation = Spline.InterpolateLocation(LerpRatio);
 
-	GetOwner()->SetActorLocation(NextLocation);
+	if (MeshOffsetRoot != nullptr)
+	{
+		MeshOffsetRoot->SetWorldLocation(NextLocation);
+	}
 }
 
 void UGoKartMovementReplicator::InterpolateVelocity(const FHermiteCubicSpline &Spline, float LerpRatio)
@@ -97,7 +100,10 @@ void UGoKartMovementReplicator::InterpolateRotation(float LerpRatio)
 	FQuat StartRotation = ClientStartTransform.GetRotation();
 	FQuat NextRotation = FQuat::Slerp(StartRotation, TargetRotation, LerpRatio);
 
-	GetOwner()->SetActorRotation(NextRotation);
+	if (MeshOffsetRoot != nullptr)
+	{
+		MeshOffsetRoot->SetWorldRotation(NextRotation);
+	}
 }
 
 float UGoKartMovementReplicator::VelocityToDerivative()
@@ -173,8 +179,15 @@ void UGoKartMovementReplicator::SimulatedProxy_OnRep_ServerState()
 	ClientTimeBetweenLastUpdates = ClientTimeSinceUpdate;
 	ClientTimeSinceUpdate = 0;
 
-	ClientStartTransform = GetOwner()->GetActorTransform();
+	if (MeshOffsetRoot != nullptr)
+	{
+		ClientStartTransform.SetLocation(MeshOffsetRoot->GetComponentLocation());
+		ClientStartTransform.SetRotation(MeshOffsetRoot->GetComponentQuat());
+	}
+
 	ClientStartVelocity = MovementComponent->GetVelocity();
+
+	GetOwner()->SetActorTransform(ServerState.Transform);
 }
 
 void UGoKartMovementReplicator::AutonomousProxy_OnRep_ServerState()
