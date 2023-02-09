@@ -215,19 +215,26 @@ void UGoKartMovementReplicator::Server_SendMove_Implementation(FGoKartMove NewMo
 		return;
 	}
 
+	ClientSimulatedTime += NewMove.DeltaTime;
 	MovementComponent->SimulateMove(NewMove);
 	UpdateServerState(NewMove);
 }
 
 bool UGoKartMovementReplicator::Server_SendMove_Validate(FGoKartMove NewMove)
 {
-	if (FMath::Abs(NewMove.Throttle) > 1.0)
+	float ProposedTime = ClientSimulatedTime + NewMove.DeltaTime;
+
+	bool ClientNotRunningAhead = ProposedTime < GetWorld()->TimeSeconds;
+
+	if (!ClientNotRunningAhead)
 	{
+		UE_LOG(LogTemp, Error, TEXT("Client is running too fast"));
 		return false;
 	}
 
-	if (FMath::Abs(NewMove.SteeringThrow) > 1.0)
+	if (!NewMove.IsValid())
 	{
+		UE_LOG(LogTemp, Error, TEXT("Received invalid move from client"));
 		return false;
 	}
 

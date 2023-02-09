@@ -67,6 +67,8 @@ private:
 	UPROPERTY()
 	UGoKartMovementComponent* MovementComponent;
 
+	float ClientSimulatedTime;
+
 	float ClientTimeSinceUpdate;
 
 	float ClientTimeBetweenLastUpdates;
